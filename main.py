@@ -9,11 +9,18 @@ class Token(object):
         return str("Token: " + str(self.type) + " " + str(self.value))
 
 class Interpreter(object):
+    #################################
+    # Initializer
+    #################################
     def __init__(self, text):
         self.text = text
         self.pos = 0
         self.current_token = None
         self.current_char = self.text[self.pos]
+
+    ####################################
+    # Lexer
+    ####################################
 
     def advance(self):
         self.pos += 1
@@ -51,6 +58,9 @@ class Interpreter(object):
                 return Token(MINUS, "-")
             self.error()
 
+    ##################################3
+    # Parser
+    ##################################3
     def eat(self, token_type):
         """
         - Compare current token type with passed token
@@ -64,33 +74,25 @@ class Interpreter(object):
         else:
             self.error()
 
+    def term(self):
+        token = self.current_token
+        self.eat(INTEGER)
+        return token.value
+
     def expr(self):
-        # self.current_token = self.get_next_token()
-        # left = self.current_token
-        # self.eat(INTEGER)
-        # op = self.current_token
-        # self.eat(PLUS)
-        # right = self.current_token
-        # self.eat(INTEGER)
-        # result = left.value + right.value
-        # return result
+        # This should be able to parse multi op expr -> eg: 87 + 123 - 23
         self.current_token = self.get_next_token()
-        left = self.current_token
-        self.eat(INTEGER)
 
-        op = self.current_token
-        if op.type == PLUS:
-            self.eat(PLUS)
-        else:
-            self.eat(MINUS)
-
-        right = self.current_token
-        self.eat(INTEGER)
-
-        if op.type == PLUS:
-            return left.value + right.value
-        else:
-            return left.value - right.value
+        result = self.term()
+        while self.current_token.type in (PLUS, MINUS):
+            token = self.current_token
+            if self.current_token == PLUS:
+                self.eat(PLUS)
+                result = result + self.term()
+            elif self.current_token == MINUS:
+                self.eat(MINUS)
+                result = result - self.term()
+        return result
 
 def main():
     while True:
