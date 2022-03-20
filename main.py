@@ -2,14 +2,22 @@
 #
 # EOF (end-of-file) token is used to indicate that
 # there is no more input left for lexical analysis
-INTEGER, MUL, DIV, EOF = 'INTEGER', 'MUL', 'DIV', 'EOF'
+##############################################################
+#### #+NOTE
+# expr: term((PLUS | MINUS) term)*
+# term: factor((MUL | DIV) factor)*
+# factor: INTEGER
+
+INTEGER, PLUS, MINUS, MUL, DIV, EOF = (
+    'INTEGER', 'PLUS', 'MINUS', 'MUL', 'DIV', 'EOF'
+)
 
 
 class Token(object):
     def __init__(self, type, value):
-        # token type: INTEGER, MUL, DIV, or EOF
+        # token type: INTEGER, PLUS, MINUS, MUL, DIV, or EOF
         self.type = type
-        # token value: non-negative integer value, '*', '/', or None
+        # token value: non-negative integer value, '+', '-', '*', '/', or None
         self.value = value
 
     def __str__(self):
@@ -17,6 +25,7 @@ class Token(object):
 
         Examples:
             Token(INTEGER, 3)
+            Token(PLUS, '+')
             Token(MUL, '*')
         """
         return 'Token({type}, {value})'.format(
@@ -74,6 +83,14 @@ class Lexer(object):
             if self.current_char.isdigit():
                 return Token(INTEGER, self.integer())
 
+            if self.current_char == '+':
+                self.advance()
+                return Token(PLUS, '+')
+
+            if self.current_char == '-':
+                self.advance()
+                return Token(MINUS, '-')
+
             if self.current_char == '*':
                 self.advance()
                 return Token(MUL, '*')
@@ -86,7 +103,7 @@ class Lexer(object):
 
         return Token(EOF, None)
 
-
+#### Interpreter
 class Interpreter(object):
     def __init__(self, lexer):
         self.lexer = lexer
@@ -115,14 +132,9 @@ class Interpreter(object):
         self.eat(INTEGER)
         return token.value
 
-    def expr(self):
-        """Arithmetic expression parser / interpreter.
-
-        expr   : factor ((MUL | DIV) factor)*
-        factor : INTEGER
-        """
+    def term(self):
+        # term: factor((MUL | DIV) factor)*
         result = self.factor()
-
         while self.current_token.type in (MUL, DIV):
             token = self.current_token
             if token.type == MUL:
@@ -131,9 +143,21 @@ class Interpreter(object):
             elif token.type == DIV:
                 self.eat(DIV)
                 result = result / self.factor()
-
         return result
 
+
+    def expr(self):
+        # expr: term((PLUS | MINUS) term)*
+        result = self.term()
+        while self.current_token.type in (PLUS, MINUS):
+            token = self.current_token
+            if token.type == PLUS:
+                self.eat(PLUS)
+                result = result + self.term()
+            elif token.type == MINUS:
+                self.eat(MINUS)
+                result = result - self.term()
+        return result
 
 def main():
     while True:
